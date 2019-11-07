@@ -206,7 +206,7 @@ class PanoSeq2SeqTrainer():
             self.agent.results_path = '{}{}_{}_epoch_{}.json'.format(self.opts.results_dir, self.opts.exp_name,
                                                                      env_name, epoch)
         self.agent.write_results()
-        score_summary, _ = evaluator.score(self.agent.results_path)
+        score_summary, scores = evaluator.score(self.agent.results_path)
         result_str = ''
         success_rate = 0.0
         for metric, val in score_summary.items():
@@ -216,5 +216,6 @@ class PanoSeq2SeqTrainer():
             if tb_logger:
                 tb_logger.add_scalar('score/{}/{}'.format(env_name, metric), val, epoch)
         print(result_str)
+        print(scores)
 
         return success_rate
