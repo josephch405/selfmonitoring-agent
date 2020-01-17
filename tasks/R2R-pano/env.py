@@ -35,8 +35,9 @@ def load_features(feature_store):
                 image_w = int(item['image_w'])
                 vfov = int(item['vfov'])
                 long_id = _make_id(item['scanId'], item['viewpointId'])
+                # TODO: maybe parameterize the dimension
                 features[long_id] = np.frombuffer(base64.b64decode(item['features']),
-                                                       dtype=np.float32).reshape((36, 2048))
+                                                       dtype=np.float32).reshape((36, 1000))
                 print_progress(i + 1, total_length, prefix='Progress:',
                                suffix='Complete', bar_length=50)
     else:
