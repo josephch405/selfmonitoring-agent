@@ -72,7 +72,7 @@ class SelfMonitoring(nn.Module):
         batch_size, num_imgs, feat_dim = img_feat.size()
 
         index_length = [len(_index) + self.num_predefined_action for _index in navigable_index]
-        navigable_mask = create_mask(batch_size, self.max_navigable, index_length)
+        navigable_mask = create_mask(batch_size, self.max_navigable, index_length).to(self.device)
 
         proj_navigable_feat = proj_masking(navigable_feat, self.proj_navigable_mlp, navigable_mask)
         proj_pre_feat = self.proj_navigable_mlp(pre_feat)

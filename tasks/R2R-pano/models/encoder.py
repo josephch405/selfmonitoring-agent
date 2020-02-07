@@ -59,5 +59,5 @@ class EncoderRNN(nn.Module):
             ct = torch.cat((ct_1, ct_2), 2)
         else:
             output, (ht, ct) = self.rnn(embeds, mask=embeds_mask)
-
-        return output.transpose(0, 1), ht.squeeze(), ct.squeeze(), embeds_mask
+        
+        return output.transpose(0, 1), ht.squeeze(0), ct.squeeze(0), embeds_mask

@@ -12,8 +12,10 @@ import base64
 import csv
 import sys
 
-import torchvision.models as models
+from torchvision import transforms, models
 import torch
+
+import matplotlib.pyplot as plt
 
 csv.field_size_limit(sys.maxsize)
 
@@ -43,6 +45,7 @@ WIDTH=640
 HEIGHT=480
 VFOV=60
 
+torch.no_grad()
 
 def load_viewpointids():
     viewpointIds = []
@@ -58,15 +61,26 @@ def load_viewpointids():
     return viewpointIds
 
 
-def transform_img(im):
-    ''' Prep opencv 3 channel image for the network '''
-    im_orig = im.astype(np.float32, copy=True)
-    im_orig -= np.array([[[103.1, 115.9, 123.2]]]) # BGR pixel mean
-    blob = np.zeros((1, im.shape[0], im.shape[1], 3), dtype=np.float32)
-    blob[0, :, :, :] = im_orig
-    blob = blob.transpose((0, 3, 1, 2))
-    return blob
+# def transform_img(im):
+#     ''' Prep opencv 3 channel image for the network '''
+#     im_orig = im.astype(np.float32, copy=True)
+#     im_orig -= np.array([[[103.1, 115.9, 123.2]]]) # BGR pixel mean
+#     blob = np.zeros((1, im.shape[0], im.shape[1], 3), dtype=np.float32)
+#     blob[0, :, :, :] = im_orig
+#     blob = blob.transpose((0, 3, 1, 2))
+#     return blob
 
+def transform_img_torch(im):
+    ''' Prep opencv 3 channel image for the network '''
+    # im_orig = im.astype(np.float32, copy=True)
+    preprocess = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    input_tensor = preprocess(im)
+    blob = np.zeros((1, 3, im.shape[0], im.shape[1]), dtype=np.float32)
+    blob[0, :, :, :] = input_tensor
+    return blob
 
 def build_tsv():
     # Set up the simulator
@@ -98,15 +112,15 @@ def build_tsv():
                 if ix == 0:
                     sim.newEpisode(scanId, viewpointId, 0, math.radians(-30))
                 elif ix % 12 == 0:
-                    sim.makeAction(0, math.radians(30), math.radians(30))
+                    sim.makeAction(0, 1.0, 1.0)
                 else:
-                    sim.makeAction(0, math.radians(-30), 0)
+                    sim.makeAction(0, 1.0, 0)
 
                 state = sim.getState()
                 assert state.viewIndex == ix
                 
                 # Transform and save generated image
-                blobs.append(transform_img(state.rgb))
+                blobs.append(transform_img_torch(state.rgb))
 
             t_render.toc()
             t_net.tic()
@@ -138,7 +152,7 @@ def build_tsv():
             if count % 100 == 0:
                 print('Processed %d / %d viewpoints, %.1fs avg render time, %.1fs avg net time, projected %.1f hours' %\
                   (count,len(viewpointIds), t_render.average_time, t_net.average_time, 
-                  (t_render.average_time+t_net.average_time)*len(viewpointIds)/3600))
+                  (t_render.average_time+t_net.average_time)*(len(viewpointIds)- count)/3600))
 
 
 def read_tsv(infile):
