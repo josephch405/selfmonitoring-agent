@@ -6,7 +6,7 @@ import numpy as np
 
 IMG_FIELDNAMES = ['scanId', 'viewpointId', 'image_w','image_h', 'vfov', 'features']
 VIEWPOINT_SIZE = 36 # Number of discretized views from one viewpoint
-FEATURE_SIZE = 1000 # 2048
+FEATURE_SIZE = 2048 # 2048
 
 NAV_FIELDNAMES = ['scanId', 'viewpointId', 'nav']
 
@@ -33,7 +33,7 @@ def read_navigable_tsv(infile):
         reader = csv.DictReader(tsv_in_file, delimiter='\t', fieldnames = NAV_FIELDNAMES)
         for item in reader:
             item['nav'] = np.round(np.frombuffer(base64.b64decode(item['nav']), 
-                    dtype=np.float32).reshape(-1, 10, 3), 8)
+                    dtype=np.float32), 8)
             in_data.append(item)
     return in_data
 

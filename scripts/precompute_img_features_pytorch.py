@@ -31,7 +31,7 @@ from timer import Timer
 
 TSV_FIELDNAMES = ['scanId', 'viewpointId', 'image_w','image_h', 'vfov', 'features']
 VIEWPOINT_SIZE = 36 # Number of discretized views from one viewpoint
-FEATURE_SIZE = 1000 # 2048
+FEATURE_SIZE = 2048
 BATCH_SIZE = 4  # Some fraction of viewpoint size - batch size 4 equals 11GB memory
 GPU_ID = 0
 PROTO = 'models/ResNet-152-deploy.prototxt'
@@ -130,13 +130,19 @@ def build_tsv():
             ix = 0
             for f in range(forward_passes):
                 model_input = torch.zeros([BATCH_SIZE, 3, HEIGHT, WIDTH]).cuda()
+                def hook_fn(m, i, o):
+                    features[f*BATCH_SIZE:(f+1)*BATCH_SIZE, :] = \
+                        o.detach().squeeze(2).squeeze(2).cpu().numpy()
+                
                 for n in range(BATCH_SIZE):
                     # Copy image blob to the net
                     model_input[n, :, :, :] = torch.Tensor(blobs[ix]).cuda()
                     ix += 1
                 # Forward pass
+                hook_ref = model.avgpool.register_forward_hook(hook_fn)
                 output = model(model_input)
-                features[f*BATCH_SIZE:(f+1)*BATCH_SIZE, :] = output.detach().cpu().numpy()
+                hook_ref.remove()
+
                 del output
 
             writer.writerow({

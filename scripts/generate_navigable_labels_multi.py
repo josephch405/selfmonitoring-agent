@@ -79,7 +79,7 @@ def build_tsv():
             blobs = []
             # Each vertex has a max of 8 possible nav directions
             # Each target is [heading, elevation, dist]
-            features = np.zeros([VIEWPOINT_SIZE], dtype=np.float32)
+            features = np.zeros([VIEWPOINT_SIZE, 10, 3], dtype=np.float32)
             for ix in range(VIEWPOINT_SIZE):
                 if ix == 0:
                     sim.newEpisode(scanId, viewpointId, 0, math.radians(-30))
@@ -94,14 +94,12 @@ def build_tsv():
                 all_nav_except_stay = state.navigableLocations[1:]
                 target_mapping = lambda l: [l.rel_heading, l.rel_elevation, l.rel_distance]
                 filter_distances = lambda l: l[2] <= 5 and l[2] >= 0.5
-                filter_angles = lambda l: (abs(l[0]) <= math.radians(15)) and (abs(l[1]) <= math.radians(15))
-
-                list_of_navs = list(map(target_mapping, all_nav_except_stay))
-                list_of_navs = list(filter(filter_angles, filter(filter_distances, list_of_navs)))
-
-                navigable = int(len(list_of_navs) >= 1)
-                features[ix] = navigable
-            
+                
+                list_of_navs = map(target_mapping, all_nav_except_stay)
+                list_of_navs = list(filter(filter_distances, list_of_navs))
+                n_arr = np.array(list_of_navs, dtype=np.float32)
+                if len(n_arr) > 0:
+                    features[ix, :len(n_arr)] = n_arr
             t_render.toc()
             writer.writerow({
                 'scanId': scanId,
@@ -121,7 +119,7 @@ def read_tsv(infile):
         reader = csv.DictReader(tsv_in_file, delimiter='\t', fieldnames = TSV_FIELDNAMES)
         for item in reader:
             item['nav'] = np.frombuffer(base64.b64decode(item['nav']), 
-                    dtype=np.float32)
+                    dtype=np.float32).reshape(-1, 10, 3)
             in_data.append(item)
     return in_data
 
