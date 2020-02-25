@@ -16,6 +16,8 @@ from utils import load_datasets, load_nav_graphs, print_progress, is_experiment
 
 csv.field_size_limit(sys.maxsize)
 
+img_feature_dim = 2048 # 1000
+
 def load_features(feature_store):
     def _make_id(scanId, viewpointId):
         return scanId + '_' + viewpointId
@@ -37,7 +39,7 @@ def load_features(feature_store):
                 long_id = _make_id(item['scanId'], item['viewpointId'])
                 # TODO: maybe parameterize the dimension
                 features[long_id] = np.frombuffer(base64.b64decode(item['features']),
-                                                       dtype=np.float32).reshape((36, 1000))
+                                                       dtype=np.float32).reshape((36, img_feature_dim))
                 print_progress(i + 1, total_length, prefix='Progress:',
                                suffix='Complete', bar_length=50)
     else:

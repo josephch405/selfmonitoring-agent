@@ -20,12 +20,15 @@ args = parser.parse_args()
 instr_id = args.instruction
 
 # Load R2R validation inference trajectories
-fp = "tasks/R2R-pano/results/selfmon-gibson-v2_val_seen_epoch_300.json"
+fp = "tasks/R2R-pano/results/selfmon-gibson-imgnet_val_seen_epoch_300.json"
+# fp = "tasks/R2R-pano/results/selfmon-gibson-v2_val_unseen_epoch_300.json"
+
 with open(fp) as file:
     all_traj = json.load(file)
 
 # Load input data for R2R model so we can recover trajectory details
 traj_db_fp = "tasks/R2R-pano/data/R2R_val_seen.json"
+# traj_db_fp = "tasks/R2R-pano/data/R2R_val_unseen.json"
 with open(traj_db_fp) as file:
     traj_db = json.load(file)
 

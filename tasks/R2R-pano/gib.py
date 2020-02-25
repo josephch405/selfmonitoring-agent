@@ -31,7 +31,10 @@ good_path_tuples = [
     ("B6ByNegPMKs", 6757, 1, "Walk down the hall towards the exit sign and turn right. Walk into the first door on the left and stop. ", [50.94770050048828, -21.33690071105957, 1.4572299718856812]),
     
     ("5q7pvUzZiYa", 5057, 2, "Turn around and walk into the bedroom. Walk out of the bedroom into the hallway. Stop just outside the bedroom. ", [15.51509952545166, -0.6587600111961365, 1.596619963645935]),
-    ("mJXqzFtmKg4", 2235, 0, "Walk out of the kitchen and past the hallway door. Walk into the dining room and turn right. Stop by the piano. ", [-3.7005701065063477, 4.07436990737915, 1.523900032043457])
+    ("mJXqzFtmKg4", 2235, 0, "Walk out of the kitchen and past the hallway door. Walk into the dining room and turn right. Stop by the piano. ", [-3.7005701065063477, 4.07436990737915, 1.523900032043457]),
+    ("V2XKFyX4ASd", 3474, 0, "Exit the bathroom. Walk forward and go down the stairs. Stop four steps from the bottom. ", [8.059459686279297, -0.07581040263175964, 4.145989894866943]),
+    ("XcA2TqTSSAj", 2907, 1, "Go down the hallway where the bathroom is located and into the bedroom with the dark lacquer wooden floor. ", [4.149159908294678, 2.2838799953460693, 4.6429901123046875]),
+    ("V2XKFyX4ASd", 1726, 1, "Turn right and walk across the bed. Turn slightly left and exit the bedroom. Walk towards the sofa and wait there. ", [5.758540153503418, 6.962540149688721, 4.039840221405029])
 ]
 
 gibson_path_tuples = [
@@ -55,7 +58,7 @@ tok = Tokenizer(opts.remove_punctuation == 1, opts.reversed == 1, vocab=vocab, e
 
 batch_size = 1
 
-trajectory_to_play = [good_path_tuples[0]]
+trajectory_to_play = [good_path_tuples[5]]
 
 policy_model_kwargs = {
         'opts':opts,
@@ -143,6 +146,7 @@ def rollout(traj, headless=False):
     # starting_coords = [0, 0, 0]
 
     seq = tok.encode_sentence(instr)
+    tokens = tok.split_sentence(instr)
 
     seq_lengths = [np.argmax(seq == padding_idx, axis=0)]
     seq = torch.from_numpy(np.expand_dims(seq, 0)).cuda()
@@ -208,12 +212,19 @@ def rollout(traj, headless=False):
         depth *= depth
         depth = depth[:, :, :, :3].sum(axis=3)
         depth = np.sqrt(depth)
+        # filter out 0 distances that are presumably from infinity dist
+        depth[depth < 0.0001] = 10
 
         # TODO: generalize to non-horizontal moves
         depth_ok = depth[12:24, 200:440, 160:480].min(axis=2).min(axis=1)
+        fig=plt.figure(figsize=(8, 2))
+        for n, i in enumerate([0, 3, 6, 9]):
+            fig.add_subplot(1, 4, n + 1)
+            plt.imshow(depth[12 + i])
+        plt.show()
         # depth_ok *= depth_ok > 1
         print(depth_ok)
-        depth_ok = depth_ok > 0.5
+        depth_ok = depth_ok > 0.8
 
         print(depth_ok)
 
@@ -232,14 +243,28 @@ def rollout(traj, headless=False):
         navigable_feat[0, 1:13] = imgnet_output[12:24] * torch.Tensor(depth_ok).cuda().view(12, 1)
 
         # TODO: make nicer as stated above
-        navigable_index = [[1] + list(map(int, depth_ok)) + [0] * 3]
+        navigable_index = [list(map(int, depth_ok))]
         print(navigable_index)
 
         # NB: depth_ok replaces navigable_index
         h_t, c_t, pre_ctx_attend, img_attn, ctx_attn, logit, value, navigable_mask = model(
             pano_img_feat, navigable_feat, pre_feat, question, h_t, c_t, ctx,
             pre_ctx_attend, navigable_index, ctx_mask)
-        
+
+        print("ATTN")
+        print(ctx_attn[0])
+        print(img_attn[0])
+        plt.bar(range(len(tokens)), ctx_attn.detach().cpu()[0][:len(tokens)])
+        plt.xticks(range(len(tokens)), tokens)
+        plt.show()
+        plt.bar(range(16), img_attn.detach().cpu()[0])
+        plt.show()
+
+        print("NMASK")
+        print(navigable_mask)
+        logit.data.masked_fill_((navigable_mask == 0).data, -float('inf'))
+        m = torch.Tensor([[False] + list(map(lambda b: not b, navigable_index[0])) + [False, False, False]], dtype=bool).cuda()
+        logit.data.masked_fill_(m, -float('inf'))
         action = _select_action(logit, [False])
         ended = apply_action(robot, action[0], depth_ok)
         bot_is_running = not ended or not headless

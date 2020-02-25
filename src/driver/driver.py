@@ -20,7 +20,7 @@ sim = MatterSim.Simulator()
 sim.setCameraResolution(WIDTH, HEIGHT)
 sim.setCameraVFOV(VFOV)
 sim.init()
-sim.newEpisode('2t7WUuJeko7', '1e6b606b44df4a6086c0f97e826d4d15', 0, 0)
+sim.newEpisode('dhjEzFoUFzH', '75d325c4b2c34901a4f0a4729af01969', 0, 0)
 
 
 heading = 0

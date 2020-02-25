@@ -124,6 +124,9 @@ def proj_masking(feat, projector, mask=None):
     """Universal projector and masking"""
     proj_feat = projector(feat.view(-1, feat.size(2)))
     proj_feat = proj_feat.view(feat.size(0), feat.size(1), -1)
+    print(proj_feat.shape)
+    print(mask.unsqueeze(2).shape)
+    print(mask.unsqueeze(2).expand_as(proj_feat).shape)
     if mask is not None:
         return proj_feat * mask.unsqueeze(2).expand_as(proj_feat)
     else:

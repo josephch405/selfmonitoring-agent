@@ -75,6 +75,11 @@ class SelfMonitoring(nn.Module):
         navigable_mask = create_mask(batch_size, self.max_navigable, index_length).to(self.device)
 
         proj_navigable_feat = proj_masking(navigable_feat, self.proj_navigable_mlp, navigable_mask)
+        print("PNF")
+        print(index_length)
+        print(navigable_mask)
+        print(proj_navigable_feat)
+        print(proj_navigable_feat.shape)
         proj_pre_feat = self.proj_navigable_mlp(pre_feat)
         positioned_ctx = self.lang_position(ctx)
 
